@@ -270,11 +270,23 @@ makeCommand('list')
   .help('Lists all connected Tessels and their authorization status.');
 
 parser.command('init')
-  .callback(init)
+  // .callback(init)
+  .callback((opts) => {
+    // We have to wrap the function in an anonymous callback
+    // or nomnom shields it from being stubbed for unit tests
+    return init.initProject(opts)
+      .then(module.exports.closeSuccessfulCommand, module.exports.closeFailedCommand);
+  })
   .option('interactive', {
     flag: true,
     abbr: 'i',
     help: 'Run in interactive mode'
+  })
+  .option('lang', {
+    metavar: 'LANG',
+    abbr: 'l',
+    default: 'js',
+    help: 'The language to use <javascript|rust|js|rs>. Javascript by default'
   })
   .help('Initialize repository for your Tessel project');
 

@@ -736,11 +736,9 @@ exports['--output true/false'] = {
 
 
 exports['Tessel (cli: crash-reporter)'] = {
+
   setUp: function(done) {
     this.sandbox = sinon.sandbox.create();
-    this.warn = this.sandbox.stub(logs, 'warn');
-    this.info = this.sandbox.stub(logs, 'info');
-
     this.closeSuccessful = this.sandbox.stub(cli, 'closeSuccessfulCommand');
     this.closeFailed = this.sandbox.stub(cli, 'closeFailedCommand');
 
@@ -878,5 +876,65 @@ exports['Tessel (cli: crash-reporter)'] = {
       test.done();
     });
   },
+};
 
+exports['Tessel (init)'] = {
+  setUp: function(done) {
+    this.sandbox = sinon.sandbox.create();
+    this.warn = this.sandbox.stub(logs, 'warn');
+    this.info = this.sandbox.stub(logs, 'info');
+
+    this.successfulCommand = this.sandbox.stub(cli, 'closeSuccessfulCommand');
+    this.failedCommand = this.sandbox.stub(cli, 'closeFailedCommand');
+    this.initProject = this.sandbox.spy(init, 'initProject');
+    this.detectLanguage = this.sandbox.spy(init, 'detectLanguage');
+    this.generateJavaScriptProject = this.sandbox.stub(initJavaScript, 'generateProject').returns(Promise.resolve());
+    this.generateRustProject = this.sandbox.stub(initRust, 'generateProject').returns(Promise.resolve());
+    done();
+  },
+
+  tearDown: function(done) {
+    this.sandbox.restore();
+    done();
+  },
+
+  noOpts: function(test) {
+    test.expect(5);
+    // Call the CLI with the init command
+    cli(['init']);
+
+    setImmediate(() => {
+      // Ensure it calls our internal init function
+      test.equal(this.initProject.callCount, 1);
+      // Ensure it checks the language being requested
+      test.equal(this.detectLanguage.callCount, 1);
+      // It should generate a js project
+      test.equal(this.generateJavaScriptProject.callCount, 1);
+      // It should not generate a Rust project
+      test.equal(this.generateRustProject.callCount, 0);
+      // Ensure it continues to call our exit function
+      test.equal(this.successfulCommand.callCount, 1);
+      test.done();
+    });
+  },
+
+  rustOpts: function(test) {
+    test.expect(5);
+    // Call the CLI with the init command
+    cli(['init', '--lang=rust']);
+
+    setImmediate(() => {
+      // Ensure it calls our internal init function
+      test.equal(this.initProject.callCount, 1);
+      // Ensure it checks the language being requested
+      test.equal(this.detectLanguage.callCount, 1);
+      // Ensure it does not attempt to generate a Rust project
+      test.equal(this.generateJavaScriptProject.callCount, 0);
+      // Ensure it does generate a Rust project
+      test.equal(this.generateRustProject.callCount, 1);
+      // Ensure it continues to call our exit function
+      test.equal(this.successfulCommand.callCount, 1);
+      test.done();
+    });
+  },
 };
